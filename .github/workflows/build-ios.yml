@@ -49,15 +49,18 @@ jobs:
           cd ios
           pod install
           
-          # Dùng lệnh đơn giản gọi trực tiếp giá trị tự động từ Xcode
+          # Build Archive với đầy đủ tham số chứng chỉ và Provisioning Profile thủ công
           xcodebuild -workspace ThayNhotTaiNha.xcworkspace \
             -scheme ThayNhotTaiNha \
             -sdk iphoneos \
             -configuration Release \
             -archivePath build/ThayNhotTaiNha.xcarchive \
             archive \
-            CODE_SIGN_STYLE="Manual"
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            PROVISIONING_PROFILE="00008150-000E78913C3B401C"
 
+          # Xuất file IPA dựa trên exportOptions.plist
           xcodebuild -exportArchive \
             -archivePath build/ThayNhotTaiNha.xcarchive \
             -exportOptionsPlist ../exportOptions.plist \
