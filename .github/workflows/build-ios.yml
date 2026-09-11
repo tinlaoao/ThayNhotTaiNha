@@ -16,7 +16,7 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Prebuild Native iOS Project
         # Bước này sẽ tự động tạo thư mục 'ios' và chạy 'pod install'
