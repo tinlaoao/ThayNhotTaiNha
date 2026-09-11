@@ -49,15 +49,16 @@ jobs:
           cd ios
           pod install
           
-          # Tự động trích xuất UUID và Tên Profile từ tệp mobileprovision hệ thống
+          # Tự động trích xuất Tên Profile từ tệp mobileprovision trong hệ thống
           PROV_PROFILE_FILE="$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision
-          UUID=$(grep -a -A 1 '<key>UUID</key>' "$PROV_PROFILE_FILE" | grep -oE '<string>.*</string>' | head -n 1 | tr -d '<>/string')
           PROFILE_NAME=$(grep -a -A 1 '<key>Name</key>' "$PROV_PROFILE_FILE" | grep -oE '<string>.*</string>' | head -n 1 | tr -d '<>/string')
-          
-          echo "Da tim thay Profile UUID: $UUID"
-          echo "Da tim thay Profile Name: $PROFILE_NAME"
+          echo "Su dung Profile Name: $PROFILE_NAME"
 
-          # Build Archive với thông tin xác thực được trích xuất động
+          # Ép tệp project.pbxproj chuyển sang chế độ Manual Signing trực tiếp
+          PBXPROJ="ThayNhotTaiNha.xcodeproj/project.pbxproj"
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+
+          # Tiến hành Archive với chứng chỉ phân phối
           xcodebuild -workspace ThayNhotTaiNha.xcworkspace \
             -scheme ThayNhotTaiNha \
             -sdk iphoneos \
@@ -66,10 +67,9 @@ jobs:
             archive \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE="$UUID" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME"
 
-          # Xuất bản gói IPA
+          # Xuất bản gói tệp .ipa dựa trên exportOptions.plist
           xcodebuild -exportArchive \
             -archivePath build/ThayNhotTaiNha.xcarchive \
             -exportOptionsPlist ../exportOptions.plist \
