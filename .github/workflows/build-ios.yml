@@ -1,0 +1,57 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+
+      - name: Prebuild Native iOS Project
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Decode Certificates
+        env:
+          P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          mkdir -p certs
+          echo "$P12_BASE64" | base64 --decode > certs/certificate.p12
+          echo "$PROFILE_BASE64" | base64 --decode > certs/profile.mobileprovision
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          security create-keychain -p "temp_pass" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp_pass" build.keychain
+          security import certs/certificate.p12 -k build.keychain -P "$P12_PASSWORD" -A
+          security set-keychain-settings -lut 21600 build.keychain
+
+      - name: Build and Export IPA
+        run: |
+          cd ios
+          pod install
+          xcodebuild -workspace ThayNhotTaiNha.xcworkspace -scheme ThayNhotTaiNha -sdk iphoneos -configuration Release -archivePath build/ThayNhotTaiNha.xcarchive archive CODE_SIGN_STYLE="Manual" PROVISIONING_PROFILE_SPECIFIER=""
+          xcodebuild -exportArchive -archivePath build/ThayNhotTaiNha.xcarchive -exportOptionsPlist ../exportOptions.plist -exportPath build/output
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThayNhotTaiNha-IPA
+          path: ios/build/output/*.ipa
