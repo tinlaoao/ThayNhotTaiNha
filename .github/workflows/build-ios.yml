@@ -24,7 +24,7 @@ jobs:
       - name: Prebuild Native iOS Project
         run: npx expo prebuild --platform ios --clean
 
-      - - name: Decode Certificates
+      - name: Decode Certificates
         env:
           P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
@@ -41,7 +41,6 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "temp_pass" build.keychain
           
-          # Ép nhận diện định dạng p12 để tránh lỗi tham số
           security import certs/certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -f pkcs12 -A
           security set-keychain-settings -lut 21600 build.keychain
 
