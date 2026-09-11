@@ -49,19 +49,14 @@ jobs:
           cd ios
           pod install
           
-          # Tự động trích xuất tên Provisioning Profile từ file đã copy vào hệ thống
-          PROFILE_UUID=$(osascript -e 'tell application "System Events" to get name of item 1 of (path to library folder from user domain as text) & "MobileDevice:Provisioning Profiles"' 2>/dev/null || echo "")
-          
-          # Build Archive với chế độ Manual Signing và nhét exportOptionsPlist chuẩn
+          # Dùng lệnh đơn giản gọi trực tiếp giá trị tự động từ Xcode
           xcodebuild -workspace ThayNhotTaiNha.xcworkspace \
             -scheme ThayNhotTaiNha \
             -sdk iphoneos \
             -configuration Release \
             -archivePath build/ThayNhotTaiNha.xcarchive \
             archive \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            CODE_SIGN_STYLE="Manual"
 
           xcodebuild -exportArchive \
             -archivePath build/ThayNhotTaiNha.xcarchive \

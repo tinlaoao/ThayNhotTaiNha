@@ -6,5 +6,10 @@
     <string>ad-hoc</string>
     <key>signingStyle</key>
     <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.luber.thaynhot</key>
+        <string>00008150-000E78913C3B401C</string>
+    </dict>
 </dict>
 </plist>
