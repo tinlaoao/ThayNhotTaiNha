@@ -1,7 +1,7 @@
-name: Build iOS IPA
+name: Build iOS IPA Unsigned
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Giữ nguyên nút bấm chạy thủ công trên GitHub
 
 jobs:
   build-ios:
@@ -18,65 +18,52 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Install Expo CLI
-        run: npm install -g expo-cli
-
       - name: Prebuild Native iOS Project
+        # Bước này sẽ tự động tạo thư mục 'ios' và chạy 'pod install'
         run: npx expo prebuild --platform ios --clean
 
-      - name: Decode Certificates
-        env:
-          P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
-          P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
-          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          mkdir -p certs
-          echo "$P12_BASE64" | tr -d '\n\r ' | base64 --decode > certs/certificate.p12
-          echo "$PROFILE_BASE64" | tr -d '\n\r ' | base64 --decode > certs/profile.mobileprovision
-
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp certs/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-
-          security create-keychain -p "temp_pass" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "temp_pass" build.keychain
-          
-          security import certs/certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -f pkcs12 -A
-          security set-keychain-settings -lut 21600 build.keychain
-
-      - name: Build and Export IPA
+      - name: Build App (Unsigned)
         run: |
           cd ios
-          pod install
           
-          # Tự động trích xuất Tên Profile từ tệp mobileprovision trong hệ thống
-          PROV_PROFILE_FILE="$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision
-          PROFILE_NAME=$(grep -a -A 1 '<key>Name</key>' "$PROV_PROFILE_FILE" | grep -oE '<string>.*</string>' | head -n 1 | tr -d '<>/string')
-          echo "Su dung Profile Name: $PROFILE_NAME"
+          # Tự động trích xuất tên Workspace và Scheme do Expo sinh ra
+          WORKSPACE_NAME=$(ls | grep .xcworkspace | head -1)
+          SCHEME_NAME=$(ls | grep .xcodeproj | sed 's/\.xcodeproj//' | head -1)
+          
+          echo "Đang build Workspace: $WORKSPACE_NAME với Scheme: $SCHEME_NAME"
+          
+          # Lệnh build ép buộc bỏ qua chữ ký
+          xcodebuild -workspace "$WORKSPACE_NAME" \
+                     -scheme "$SCHEME_NAME" \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_ENTITLEMENTS="" \
+                     CODE_SIGN_STYLE=Manual \
+                     build
 
-          # Ép tệp project.pbxproj chuyển sang chế độ Manual Signing trực tiếp
-          PBXPROJ="ThayNhotTaiNha.xcodeproj/project.pbxproj"
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
-
-          # Tiến hành Archive với chứng chỉ phân phối
-          xcodebuild -workspace ThayNhotTaiNha.xcworkspace \
-            -scheme ThayNhotTaiNha \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath build/ThayNhotTaiNha.xcarchive \
-            archive \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME"
-
-          # Xuất bản gói tệp .ipa dựa trên exportOptions.plist
-          xcodebuild -exportArchive \
-            -archivePath build/ThayNhotTaiNha.xcarchive \
-            -exportOptionsPlist ../exportOptions.plist \
-            -exportPath build/output
+      - name: Package into IPA
+        run: |
+          mkdir -p Payload
+          
+          # Tìm thư mục .app vừa được Xcode build ra
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Lỗi: Không tìm thấy file .app sau khi build!"
+            exit 1
+          fi
+          
+          # Copy .app vào thư mục Payload
+          cp -r "$APP_PATH" Payload/
+          
+          # Nén thành tệp .ipa (Tên file xuất ra sẽ là app-unsigned.ipa)
+          zip -r app-unsigned.ipa Payload
+          rm -rf Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ThayNhotTaiNha-IPA
-          path: ios/build/output/*.ipa
+          name: Unsigned-iOS-App
+          path: app-unsigned.ipa
