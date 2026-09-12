@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "ThayNhotTaiNha",
-    "slug": "ThayNhotTaiNha",
+    "name": "Thay Nhớt Tại Nhà",
+    "slug": "thay-nhot-tai-nha",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "thaynhottainha",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "displayName": "Thay Nhớt Pro",
       "bundleIdentifier": "com.luber.thaynhot",
       "icon": "./assets/expo.icon",
       "infoPlist": {
