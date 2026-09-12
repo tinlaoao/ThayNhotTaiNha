@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Modal 
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet, Text,
+  TextInput, TouchableOpacity,
+  View
 } from 'react-native';
 
-// --- DỮ LIỆU MẪU CHO APP TEST ---
 const OILS_DATA = {
   engineOil: [
-    { id: 'e1', name: 'Castrol Power1 Ultimate 10W40 (Synthetic)', price: 180000 },
+    { id: 'e1', name: 'Castrol Power1 Ultimate 10W40', price: 180000 },
     { id: 'e2', name: 'Motul 300V Factory Line 10W40', price: 420000 },
     { id: 'e3', name: 'Shell Advance Ultra 4T 10W40', price: 210000 },
     { id: 'e4', name: 'Yamalube 4T Semi-Synthetic', price: 120000 },
@@ -18,28 +21,23 @@ const OILS_DATA = {
   ]
 };
 
-const LABOR_FEE = 50000; // Tiền công cơ bản / xe
-const TRAVEL_FEE = 30000; // Phí di chuyển tận nhà
-const TAX_RATE = 0.1; // Thuế VAT 10%
+const LABOR_FEE = 50000; 
+const TRAVEL_FEE = 30000; 
+const TAX_RATE = 0.1; 
 
 export default function App() {
-  // Trạng thái chung: 'auth', 'customer_dashboard', 'staff_dashboard'
   const [currentScreen, setCurrentScreen] = useState<'auth' | 'customer_dashboard' | 'staff_dashboard'>('auth');
   const [role, setRole] = useState<'customer' | 'staff'>('customer');
   
-  // --- STATE DÀNH CHO KHÁCH HÀNG ---
   const [vehicleCount, setVehicleCount] = useState(1);
   const [selectedEngineOil, setSelectedEngineOil] = useState(OILS_DATA.engineOil[0]);
   const [selectedGearOil, setSelectedGearOil] = useState(OILS_DATA.gearOil[0]);
-  const [bookingDate, setBookingDate] = useState('Hôm nay');
   const [bookingTime, setBookingTime] = useState('Sau 1 tiếng 15 phút nữa');
   
-  // Trạng thái đơn hàng của khách
   const [orderStatus, setOrderStatus] = useState<'idle' | 'waiting_staff' | 'staff_accepted' | 'completed'>('idle');
-  const [countdown, setCountdown] = useState(300); // 5 phút đếm ngược chờ thợ (300 giây)
+  const [countdown, setCountdown] = useState(300); 
   const [assignedStaff, setAssignedStaff] = useState<any>(null);
 
-  // --- STATE DÀNH CHO NHÂN VIÊN THỢ ---
   const [isWorking, setIsWorking] = useState(false);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [availableOrders, setAvailableOrders] = useState([
@@ -52,24 +50,21 @@ export default function App() {
       vehicleCount: 1,
       oilDetails: 'Castrol Power1 + Motul Gear',
       totalPrice: 285000,
-      estimatedTime: '30 phút',
-      rejectedByFirstStaff: false, // Dùng cho logic khoá nút từ chối
+      rejectedByFirstStaff: false,
     }
   ]);
 
-  // Hiệu ứng đếm ngược 5 phút chờ thợ nhận đơn
   useEffect(() => {
     let timer: any;
     if (orderStatus === 'waiting_staff' && countdown > 0) {
       timer = setInterval(() => setCountdown(c => c - 1), 1000);
     } else if (countdown === 0 && orderStatus === 'waiting_staff') {
       setOrderStatus('idle');
-      Alert.alert('Thông báo', 'Rất tiếc, hiện tại không có thợ nào nhận đơn trong khung giờ này. Vui lòng thử lại!');
+      Alert.alert('Thông báo', 'Không tìm thấy thợ nhận đơn trong khung giờ này!');
     }
     return () => clearInterval(timer);
   }, [orderStatus, countdown]);
 
-  // Tính toán tổng tiền trước khi đặt
   const calculateTotal = () => {
     const oilSubtotal = (selectedEngineOil.price + selectedGearOil.price) * vehicleCount;
     const laborSubtotal = LABOR_FEE * vehicleCount;
@@ -78,14 +73,12 @@ export default function App() {
     return Math.round(rawTotal + tax);
   };
 
-  // Khách hàng bấm Đặt Thợ
   const handlePlaceOrder = () => {
     setOrderStatus('waiting_staff');
-    setCountdown(300); // Reset về 5 phút
-    Alert.alert('Đã gửi đơn', 'Hệ thống đang tìm thợ gần nhất trong bán kính <=10km...');
+    setCountdown(300);
+    Alert.alert('Đã gửi đơn', 'Hệ thống đang tìm thợ trong bán kính <=10km...');
   };
 
-  // Thợ bấm Nhận đơn
   const handleAcceptOrder = (order: any) => {
     setAvailableOrders(prev => prev.filter(o => o.id !== order.id));
     setAssignedStaff({
@@ -97,23 +90,20 @@ export default function App() {
     setOrderStatus('staff_accepted');
   };
 
-  // Thợ bấm Từ chối đơn
   const handleRejectOrder = (order: any) => {
     if (order.rejectedByFirstStaff) {
-      Alert.alert('Bị khoá', 'Đơn hàng này đã bị từ chối 1 lần bởi thợ trước, bạn không thể từ chối trong phạm vi <=10km này!');
+      Alert.alert('Bị khoá', 'Đơn hàng này đã bị từ chối 1 lần, không thể từ chối nữa!');
       return;
     }
-    // Đánh dấu đơn bị từ chối lần 1 và đẩy lại danh sách với trạng thái bị khoá nút từ chối
     setAvailableOrders(prev => prev.map(o => o.id === order.id ? { ...o, rejectedByFirstStaff: true } : o));
-    Alert.alert('Đã từ chối', 'Đơn hàng đã được chuyển sang thợ khác.');
+    Alert.alert('Đã từ chối', 'Đơn hàng đã chuyển cho thợ khác.');
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* 1. MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ */}
       {currentScreen === 'auth' && (
         <View style={styles.authContainer}>
-          <Text style={styles.mainTitle}>🛵 Thay Nhớt Tại Nhà</Text>
+          <Text style={styles.mainTitle}>Thay Nhớt Tại Nhà</Text>
           <View style={styles.roleTab}>
             <TouchableOpacity 
               style={[styles.tabBtn, role === 'customer' && styles.activeTab]} 
@@ -136,12 +126,11 @@ export default function App() {
             style={styles.primaryBtn} 
             onPress={() => setCurrentScreen(role === 'customer' ? 'customer_dashboard' : 'staff_dashboard')}
           >
-            <Text style={styles.btnText}>Đăng Nhập / Đăng Ký ({role === 'customer' ? 'Khách' : 'Thợ'})</Text>
+            <Text style={styles.btnText}>Đăng Nhập / Đăng Ký</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* 2. GIAO DIỆN KHÁCH HÀNG */}
       {currentScreen === 'customer_dashboard' && (
         <View style={styles.dashboard}>
           <View style={styles.headerRow}>
@@ -178,7 +167,7 @@ export default function App() {
                 </TouchableOpacity>
               ))}
 
-              <Text style={styles.label}>3. Chọn Nhớt Hộp Số (Xe Ga):</Text>
+              <Text style={styles.label}>3. Chọn Nhớt Hộp Số:</Text>
               {OILS_DATA.gearOil.map(oil => (
                 <TouchableOpacity 
                   key={oil.id} 
@@ -193,11 +182,10 @@ export default function App() {
               <Text style={styles.label}>4. Thời gian đặt (Tối thiểu cách 1 tiếng 5 phút):</Text>
               <TextInput style={styles.input} value={bookingTime} onChangeText={setBookingTime} />
 
-              {/* Bảng kê chi phí trước khi đặt */}
               <View style={styles.billBox}>
                 <Text style={styles.billTitle}>Bảng kê chi phí tạm tính:</Text>
-                <Text style={styles.billText}>- Tiền nhớt & Công thợ ({vehicleCount} xe): {((selectedEngineOil.price + selectedGearOil.price + LABOR_FEE) * vehicleCount).toLocaleString()}đ</Text>
-                <Text style={styles.billText}>- Phí di chuyển tận nhà: {TRAVEL_FEE.toLocaleString()}đ</Text>
+                <Text style={styles.billText}>- Nhớt & Công thợ ({vehicleCount} xe): {((selectedEngineOil.price + selectedGearOil.price + LABOR_FEE) * vehicleCount).toLocaleString()}đ</Text>
+                <Text style={styles.billText}>- Phí di chuyển: {TRAVEL_FEE.toLocaleString()}đ</Text>
                 <Text style={styles.billText}>- Thuế VAT (10%): {(((selectedEngineOil.price + selectedGearOil.price + LABOR_FEE) * vehicleCount + TRAVEL_FEE) * TAX_RATE).toLocaleString()}đ</Text>
                 <Text style={styles.totalBillText}>TỔNG CỘNG: {calculateTotal().toLocaleString()}đ</Text>
               </View>
@@ -208,37 +196,30 @@ export default function App() {
             </View>
           )}
 
-          {/* Trạng thái chờ thợ xác nhận (5 phút) */}
           {orderStatus === 'waiting_staff' && (
             <View style={styles.waitingCard}>
               <Text style={styles.waitingTitle}>Đang tìm thợ gần bạn...</Text>
-              <Text style={styles.countdownText}>Thời gian chờ xác nhận: {Math.floor(countdown / 60)}:{(countdown % 60 < 10 ? '0' : '') + (countdown % 60)}</Text>
-              <Text style={styles.note}>Hệ thống đang ưu tiên thợ trong bán kính 10km.</Text>
+              <Text style={styles.countdownText}>Thời gian chờ: {Math.floor(countdown / 60)}:{(countdown % 60 < 10 ? '0' : '') + (countdown % 60)}</Text>
             </View>
           )}
 
-          {/* Trạng thái thợ đã nhận đơn */}
           {orderStatus === 'staff_accepted' && assignedStaff && (
             <View style={styles.acceptedCard}>
-              <Text style={styles.successTitle}>🎉 Thợ đã nhận đơn hàng của bạn!</Text>
+              <Text style={styles.successTitle}>Thợ đã nhận đơn hàng!</Text>
               <View style={styles.staffInfoBox}>
-                <Text style={styles.infoText}>👨‍🔧 Thợ: {assignedStaff.name}</Text>
-                <Text style={styles.infoText}>🏍️ Biển số xe: {assignedStaff.licensePlate}</Text>
-                <Text style={styles.infoText}>📍 Khoảng cách thợ: Cách bạn {assignedStaff.distance}</Text>
+                <Text style={styles.infoText}>Thợ: {assignedStaff.name}</Text>
+                <Text style={styles.infoText}>Biển số xe: {assignedStaff.licensePlate}</Text>
+                <Text style={styles.infoText}>Khoảng cách: {assignedStaff.distance}</Text>
               </View>
-
-              {/* Mô phỏng Map định vị thợ */}
               <View style={styles.mapMockup}>
-                <Text style={styles.mapText}>🗺️ [BẢN ĐỒ MÔ PHỎNG]</Text>
-                <Text style={styles.mapSubText}>Thợ đang di chuyển đến nhà bạn...</Text>
+                <Text style={styles.mapText}>[BẢN ĐỒ ĐỊNH VỊ THỢ]</Text>
               </View>
-
               <View style={styles.row}>
-                <TouchableOpacity style={styles.actionCall} onPress={() => Alert.alert('Gọi điện', `Đang gọi ${assignedStaff.phone}...`)}>
-                  <Text style={styles.btnText}>📞 Gọi Thoại</Text>
+                <TouchableOpacity style={styles.actionCall} onPress={() => Alert.alert('Gọi', `Đang gọi ${assignedStaff.phone}`)}>
+                  <Text style={styles.btnText}>Gọi Thoại</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionChat} onPress={() => Alert.alert('Nhắn tin', 'Mở khung chat với thợ')}>
-                  <Text style={styles.btnText}>💬 Nhắn Tin</Text>
+                <TouchableOpacity style={styles.actionChat} onPress={() => Alert.alert('Nhắn tin', 'Mở chat')}>
+                  <Text style={styles.btnText}>Nhắn Tin</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -246,7 +227,6 @@ export default function App() {
         </View>
       )}
 
-      {/* 3. GIAO DIỆN NHÂN VIÊN THỢ */}
       {currentScreen === 'staff_dashboard' && (
         <View style={styles.dashboard}>
           <View style={styles.headerRow}>
@@ -258,42 +238,40 @@ export default function App() {
 
           <View style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.label}>Trạng thái làm việc:</Text>
+              <Text style={styles.label}>Trạng thái ca làm:</Text>
               <TouchableOpacity 
                 style={[styles.shiftBtn, isWorking ? styles.endShift : styles.startShift]}
                 onPress={() => setIsWorking(!isWorking)}
               >
-                <Text style={styles.btnText}>{isWorking ? 'Kết Thúc Ca Làm' : 'Bắt Đầu Vào Ca'}</Text>
+                <Text style={styles.btnText}>{isWorking ? 'Kết Thúc Ca' : 'Bắt Đầu Vào Ca'}</Text>
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.earningText}>💰 Tổng tiền nhận được hôm nay: {todayEarnings.toLocaleString()}đ</Text>
+            <Text style={styles.earningText}>Tổng tiền hôm nay: {todayEarnings.toLocaleString()}đ</Text>
           </View>
 
           {isWorking ? (
             <View>
-              <Text style={styles.sectionTitle}>🔔 Các cuốc xe gần bạn (<= 10km):</Text>
+              <Text style={styles.sectionTitle}>Các cuốc xe gần bạn (&lt;= 10km):</Text>
               {availableOrders.length === 0 ? (
-                <Text style={styles.subText}>Chưa có đơn hàng mới nào xung quanh khu vực của bạn.</Text>
+                <Text style={styles.subText}>Chưa có đơn hàng mới.</Text>
               ) : (
                 availableOrders.map(ord => (
                   <View key={ord.id} style={styles.orderCard}>
-                    <Text style={styles.orderHeader}>Khách: {ord.customerName} - Khoảng cách: {ord.distance}</Text>
-                    <Text style={styles.infoText}>📍 Địa chỉ: {ord.address}</Text>
-                    <Text style={styles.infoText}>📞 SĐT: {ord.phone}</Text>
-                    <Text style={styles.infoText}>🛠️ Chi tiết: {ord.vehicleCount} xe ({ord.oilDetails})</Text>
-                    <Text style={styles.moneyText}>💵 Tiền thu về: {ord.totalPrice.toLocaleString()}đ (Ước tính 30p/xe)</Text>
+                    <Text style={styles.orderHeader}>Khách: {ord.customerName} - {ord.distance}</Text>
+                    <Text style={styles.infoText}>Địa chỉ: {ord.address}</Text>
+                    <Text style={styles.infoText}>SĐT: {ord.phone}</Text>
+                    <Text style={styles.infoText}>Chi tiết: {ord.vehicleCount} xe ({ord.oilDetails})</Text>
+                    <Text style={styles.moneyText}>Tiền thu: {ord.totalPrice.toLocaleString()}đ</Text>
 
                     <View style={styles.row}>
                       <TouchableOpacity style={styles.acceptBtn} onPress={() => { handleAcceptOrder(ord); setTodayEarnings(prev => prev + ord.totalPrice); }}>
                         <Text style={styles.btnText}>Chấp Nhận</Text>
                       </TouchableOpacity>
-
                       <TouchableOpacity 
                         style={[styles.rejectBtn, ord.rejectedByFirstStaff && styles.disabledBtn]} 
                         onPress={() => handleRejectOrder(ord)}
                       >
-                        <Text style={styles.btnText}>{ord.rejectedByFirstStaff ? 'Đã bị khoá từ chối' : 'Từ Chối'}</Text>
+                        <Text style={styles.btnText}>{ord.rejectedByFirstStaff ? 'Đã khoá từ chối' : 'Từ Chối'}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -302,7 +280,7 @@ export default function App() {
             </View>
           ) : (
             <View style={styles.offlineBox}>
-              <Text style={styles.subText}>Bạn đang OFF. Hãy bấm "Bắt Đầu Vào Ca" để nhận các cuốc thay nhớt quanh bạn.</Text>
+              <Text style={styles.subText}>Bạn đang OFF. Bấm "Bắt Đầu Vào Ca" để nhận đơn.</Text>
             </View>
           )}
         </View>
@@ -346,14 +324,12 @@ const styles = StyleSheet.create({
   waitingCard: { backgroundColor: '#1e293b', padding: 25, borderRadius: 12, alignItems: 'center' },
   waitingTitle: { color: '#38bdf8', fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   countdownText: { color: '#f59e0b', fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
-  note: { color: '#94a3b8', textAlign: 'center', fontSize: 13 },
   acceptedCard: { backgroundColor: '#064e3b', padding: 20, borderRadius: 12 },
   successTitle: { color: '#34d399', fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   staffInfoBox: { backgroundColor: '#022c22', padding: 12, borderRadius: 8, marginBottom: 15 },
   infoText: { color: '#fff', marginBottom: 5, fontSize: 14 },
   mapMockup: { backgroundColor: '#111827', height: 120, justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 15 },
   mapText: { color: '#9ca3af', fontWeight: 'bold' },
-  mapSubText: { color: '#6b7280', fontSize: 12, marginTop: 5 },
   actionCall: { flex: 1, backgroundColor: '#3b82f6', padding: 12, alignItems: 'center', borderRadius: 6 },
   actionChat: { flex: 1, backgroundColor: '#8b5cf6', padding: 12, alignItems: 'center', borderRadius: 6 },
   btnText: { color: '#fff', fontWeight: 'bold' },
